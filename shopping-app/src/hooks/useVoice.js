@@ -16,8 +16,10 @@ export const useVoice = (onCommand) => {
 
     recognition.onresult = (event) => {
       const transcript =
-        event.results[event.results.length - 1][0].transcript.toLowerCase();
-      onCommand(transcript);
+        event.results[event.results.length - 1][0].transcript.trim().toLowerCase();
+        if (transcript) {
+          onCommand(transcript);
+        }
     };
 
     recognition.start();

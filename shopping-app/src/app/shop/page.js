@@ -15,6 +15,122 @@ export default function Home() {
   const cartRef = useRef(cart);
   cartRef.current = cart;
 
+  const handleVoiceCommand2 = useCallback(async (command) => {
+    try {
+      const res = await fetch("/api/intent", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ command }),
+      });
+
+      const data = await res.json();
+      const synth = window.speechSynthesis;
+
+      if (data.intent === "error") {
+        synth.speak(new SpeechSynthesisUtterance(data.message || "Error processing command"));
+        return;
+      }
+
+      if (data.intent === "unknown") {
+        synth.speak(new SpeechSynthesisUtterance("Sorry, I did not understand your command."));
+        return;
+      }
+
+      switch (data.intent) {
+        case "add":
+
+          data.products.forEach((p) => {
+            const productInfo = products.find((prod) => prod.name.toLowerCase() === p.name.toLowerCase());
+            if (!productInfo) {
+              synth.speak(new SpeechSynthesisUtterance(`Product ${p.name} not found`));
+              return;
+            }
+            for (let i = 0; i < p.quantity; i++) {
+              addToCart({ ...productInfo });
+            }
+            synth.speak(new SpeechSynthesisUtterance(`${p.quantity} ${p.name}${p.quantity > 1 ? "s" : ""} added to your cart`));
+          });
+          break;
+
+        case "remove":
+          data.products.forEach((p) => {
+            const currentQty = cartRef.current.filter(item => item.name.toLowerCase() === p.name.toLowerCase()).length;
+
+
+            if (currentQty === 0) {
+              synth.speak(new SpeechSynthesisUtterance(`Cannot remove ${p.name}, it is not in your cart`));
+              return;
+            }
+
+            if (currentQty < p.quantity) {
+              synth.speak(new SpeechSynthesisUtterance(`Cannot remove ${p.quantity} ${p.name}${p.quantity > 1 ? "s" : ""}, only ${currentQty} in your cart`));
+              return;
+            }
+            const productInfo = cartRef.current.find(
+              item => item.name.toLowerCase() === p.name.toLowerCase()
+            );
+
+            for (let i = 0; i < p.quantity; i++) {
+              removeFromCart(productInfo.id);
+            }
+
+            synth.speak(new SpeechSynthesisUtterance(`${p.quantity} ${p.name}${p.quantity > 1 ? "s" : ""} removed from your cart`));
+          });
+          break;
+
+        case "show_cart":
+          if (cartRef.current.length === 0) {
+            synth.speak(new SpeechSynthesisUtterance("Your cart is empty"));
+          } else {
+            const itemNames = cartRef.current.map((i) => i.name).join(", ");
+            synth.speak(new SpeechSynthesisUtterance(`Your cart contains: ${itemNames}`));
+          }
+          break;
+        
+        case "show_product":
+          if (!data.products || data.products.length === 0) {
+            synth.speak(new SpeechSynthesisUtterance("No products specified to show."));
+          } else {
+            data.products.forEach((p) => {
+              const found = products.find((prod) => prod.name.toLowerCase() === p.name.toLowerCase());
+              if (found) {
+                const description = found.description ? `. ${found.description}` : "";
+                synth.speak(
+                  new SpeechSynthesisUtterance(`${found.name}, price ${found.price} dollars${description}`)
+                );
+              } else {
+                synth.speak(new SpeechSynthesisUtterance(`Product ${p.name} not found`));
+              }
+            });
+          }
+          break;
+
+
+        case "clear_cart":
+          clearCart();
+          synth.speak(new SpeechSynthesisUtterance("Your cart has been cleared"));
+          break;
+
+        case "checkout":
+          if (cartRef.current.length === 0) {
+            synth.speak(new SpeechSynthesisUtterance("Your cart is empty. Cannot checkout."));
+          } else {
+            const totalItems = cartRef.current.length;
+            synth.speak(new SpeechSynthesisUtterance(`Checking out ${totalItems} items. Thank you for your purchase!`));
+            clearCart();
+          }
+          break;
+
+        default:
+          synth.speak(new SpeechSynthesisUtterance("Unknown command"));
+      }
+    } catch (err) {
+      console.error("Voice command error:", err);
+      window.speechSynthesis.speak(new SpeechSynthesisUtterance("Error processing voice command"));
+    }
+  }, [addToCart, removeFromCart, clearCart]);
+
+
   
   // Stable voice command handler
   const handleVoiceCommand = useCallback(
@@ -107,7 +223,7 @@ export default function Home() {
   );
 
   // Activate voice recognition
-  useVoice(handleVoiceCommand);
+  useVoice(handleVoiceCommand2);
 
   return (
     <div>

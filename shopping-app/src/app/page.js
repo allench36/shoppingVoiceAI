@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 
+
 export default function LandingPage() {
   const router = useRouter();
 
@@ -17,8 +18,7 @@ export default function LandingPage() {
 
       <button
         onClick={handleStart}
-        className = "px-12 py-8 text-3xl md:text-4xl font-bold rounded-2xl bg-blue-600 text-white shadow-lg hover:bg-blue-700 transition-colors"
-        // className="px-12 py-8 text-3xl md:text-4xl font-bold rounded-2xl bg-blue-600 text-white shadow-lg hover:bg-blue-700 transition-colors"
+        className="px-12 py-8 text-3xl md:text-4xl font-bold rounded-2xl bg-blue-600 text-white shadow-lg hover:bg-blue-700 transition-colors"
       >
         Click to Start Voice
       </button>
